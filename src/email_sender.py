@@ -2,11 +2,13 @@
 """
 Standalone Email Sender Module
 Email notification system for CFP Scout traditional mode
+Supports both SMTP and Mailgun API
 """
 
 import os
 import smtplib
-from typing import List, Dict
+import requests
+from typing import List, Dict, Optional
 from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -16,17 +18,91 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class EmailSender:
-    """Email sender for CFP notifications"""
+    """Email sender for CFP notifications with Mailgun and SMTP support"""
     
     def __init__(self):
+        # Mailgun settings (preferred for production)
+        self.mailgun_api_key = os.getenv('MAILGUN_API_KEY')
+        self.mailgun_domain = os.getenv('MAILGUN_DOMAIN')
+        self.mailgun_from_email = os.getenv('MAILGUN_FROM_EMAIL')
+        
+        # SMTP settings (fallback)
         self.smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
         self.smtp_port = int(os.getenv('SMTP_PORT', '587'))
         self.email_address = os.getenv('EMAIL_ADDRESS')
         self.email_password = os.getenv('EMAIL_PASSWORD')
+        
+        # Common settings
         self.to_email = os.getenv('TO_EMAIL')
         
-        if not all([self.email_address, self.email_password, self.to_email]):
-            print("⚠️ Warning: Email configuration incomplete - set EMAIL_ADDRESS, EMAIL_PASSWORD, and TO_EMAIL in .env")
+        # Determine which method to use
+        self.use_mailgun = bool(self.mailgun_api_key and self.mailgun_domain and self.mailgun_from_email)
+        
+        if not self.to_email:
+            print("⚠️ Warning: TO_EMAIL not configured")
+        
+        if not self.use_mailgun and not all([self.email_address, self.email_password]):
+            print("⚠️ Warning: Email configuration incomplete")
+            print("   For Mailgun: Set MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_FROM_EMAIL")
+            print("   For SMTP: Set EMAIL_ADDRESS, EMAIL_PASSWORD")
+    
+    def _send_via_mailgun(self, subject: str, html_content: str, text_content: str) -> bool:
+        """Send email via Mailgun API"""
+        try:
+            response = requests.post(
+                f"https://api.mailgun.net/v3/{self.mailgun_domain}/messages",
+                auth=("api", self.mailgun_api_key),
+                data={
+                    "from": self.mailgun_from_email,
+                    "to": [self.to_email],
+                    "subject": subject,
+                    "text": text_content,
+                    "html": html_content
+                }
+            )
+            
+            if response.status_code == 200:
+                print(f"✅ Email sent successfully via Mailgun to {self.to_email}")
+                return True
+            else:
+                print(f"❌ Mailgun API error: {response.status_code} - {response.text}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Mailgun sending failed: {e}")
+            return False
+    
+    def _send_via_smtp(self, subject: str, html_content: str, text_content: str) -> bool:
+        """Send email via SMTP"""
+        try:
+            if not all([self.email_address, self.email_password]):
+                print("⚠️ SMTP configuration incomplete - skipping email sending")
+                return False
+            
+            # Create message
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = subject
+            msg['From'] = self.email_address
+            msg['To'] = self.to_email
+            
+            # Attach parts
+            text_part = MIMEText(text_content, 'plain')
+            html_part = MIMEText(html_content, 'html')
+            msg.attach(text_part)
+            msg.attach(html_part)
+            
+            # Send email
+            with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
+                server.starttls()
+                server.login(self.email_address, self.email_password)
+                server.send_message(msg)
+            
+            print(f"✅ Email sent successfully via SMTP to {self.to_email}")
+            return True
+            
+        except Exception as e:
+            print(f"❌ SMTP sending failed: {e}")
+            return False
     
     def _test_smtp_connection(self) -> bool:
         """Test SMTP connection"""
@@ -37,6 +113,18 @@ class EmailSender:
                 return True
         except Exception as e:
             print(f"SMTP connection failed: {e}")
+            return False
+    
+    def _test_mailgun_connection(self) -> bool:
+        """Test Mailgun API connection"""
+        try:
+            response = requests.get(
+                f"https://api.mailgun.net/v3/{self.mailgun_domain}",
+                auth=("api", self.mailgun_api_key)
+            )
+            return response.status_code == 200
+        except Exception as e:
+            print(f"Mailgun connection failed: {e}")
             return False
     
     def _format_events_html(self, events: List[Dict]) -> str:
@@ -108,21 +196,15 @@ class EmailSender:
         return html
     
     def send_cfp_email(self, events: List[Dict]) -> bool:
-        """Send CFP events via email - simplified interface for traditional mode"""
+        """Send CFP events via email - supports both Mailgun and SMTP"""
         try:
-            if not all([self.email_address, self.email_password, self.to_email]):
-                print("⚠️ Email configuration incomplete - skipping email sending")
+            if not self.to_email:
+                print("⚠️ TO_EMAIL not configured - skipping email sending")
                 return False
             
-            # Create message
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = f"📢 CFP Scout: {len(events)} Relevant Conference CFPs Found"
-            msg['From'] = self.email_address
-            msg['To'] = self.to_email
-            
-            # Create HTML content
+            # Prepare email content
+            subject = f"📢 CFP Scout: {len(events)} Relevant Conference CFPs Found"
             html_content = self._format_events_html(events)
-            html_part = MIMEText(html_content, 'html')
             
             # Create plain text content
             text_content = f"CFP Scout Daily Report\n{'='*50}\n\n"
@@ -137,20 +219,13 @@ class EmailSender:
             
             text_content += f"\nGenerated by CFP Scout • {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
             
-            text_part = MIMEText(text_content, 'plain')
-            
-            # Attach parts
-            msg.attach(text_part)
-            msg.attach(html_part)
-            
-            # Send email
-            with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
-                server.starttls()
-                server.login(self.email_address, self.email_password)
-                server.send_message(msg)
-            
-            print(f"✅ Email sent successfully to {self.to_email}")
-            return True
+            # Try Mailgun first (preferred), then fallback to SMTP
+            if self.use_mailgun:
+                print("📧 Sending email via Mailgun...")
+                return self._send_via_mailgun(subject, html_content, text_content)
+            else:
+                print("📧 Sending email via SMTP...")
+                return self._send_via_smtp(subject, html_content, text_content)
             
         except Exception as e:
             print(f"❌ Email sending failed: {e}")
@@ -172,8 +247,39 @@ def send_cfp_email(events: List[Dict]) -> bool:
     """
     return _email_sender.send_cfp_email(events)
 
+def test_email_configuration() -> None:
+    """Test email configuration and connectivity"""
+    print("🧪 Testing Email Configuration...")
+    print(f"📧 TO_EMAIL: {_email_sender.to_email}")
+    
+    if _email_sender.use_mailgun:
+        print("🚀 Using Mailgun API")
+        print(f"📧 Mailgun Domain: {_email_sender.mailgun_domain}")
+        print(f"📧 From Email: {_email_sender.mailgun_from_email}")
+        print(f"🔑 API Key: {'*' * 20 if _email_sender.mailgun_api_key else 'Not set'}")
+        
+        if _email_sender._test_mailgun_connection():
+            print("✅ Mailgun connection successful")
+        else:
+            print("❌ Mailgun connection failed")
+    else:
+        print("📨 Using SMTP")
+        print(f"📧 SMTP Server: {_email_sender.smtp_server}:{_email_sender.smtp_port}")
+        print(f"📧 Email Address: {_email_sender.email_address}")
+        
+        if _email_sender.email_address and _email_sender.email_password:
+            if _email_sender._test_smtp_connection():
+                print("✅ SMTP connection successful")
+            else:
+                print("❌ SMTP connection failed")
+        else:
+            print("⚠️ SMTP credentials not configured")
+
 if __name__ == "__main__":
-    # Test the email sender
+    # Test the email configuration
+    test_email_configuration()
+    
+    # Test sending an email
     test_events = [
         {
             'title': 'Test Conference',
@@ -186,9 +292,9 @@ if __name__ == "__main__":
         }
     ]
     
-    print("Testing email sender...")
+    print("\n🧪 Testing email sending...")
     success = send_cfp_email(test_events)
     if success:
         print("✅ Email test successful!")
     else:
-        print("❌ Email test failed - check your .env configuration") 
+        print("❌ Email test failed - check your configuration") 

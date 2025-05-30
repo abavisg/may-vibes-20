@@ -197,19 +197,54 @@ OLLAMA_MODEL=qwen2.5-coder:1.5b
 # User interests for filtering
 USER_INTERESTS=AI,machine learning,engineering leadership,fintech,developer experience
 
-# Email settings (for production email notifications)
-EMAIL_ADDRESS=your_email@gmail.com
-EMAIL_PASSWORD=your_app_password
+# Choose ONE email method below:
+
+# Method 1: Mailgun (recommended for production)
+MAILGUN_API_KEY=your-mailgun-api-key
+MAILGUN_DOMAIN=your-domain.mailgun.org
+MAILGUN_FROM_EMAIL=CFP Scout <noreply@your-domain.mailgun.org>
 TO_EMAIL=recipient@example.com
-SMTP_SERVER=smtp.gmail.com
-SMTP_PORT=587
+
+# Method 2: SMTP (Gmail, etc.)
+# EMAIL_ADDRESS=your_email@gmail.com
+# EMAIL_PASSWORD=your_app_password
+# SMTP_SERVER=smtp.gmail.com
+# SMTP_PORT=587
+# TO_EMAIL=recipient@example.com
 ```
 
-### **📧 Email Setup (Optional)**
+### **📧 Email Setup**
 
-CFP Scout includes full email functionality! To enable email notifications:
+CFP Scout supports two email methods. **Mailgun is recommended** for production as it doesn't require personal passwords.
 
-#### **Gmail Setup (Recommended)**
+#### **🚀 Method 1: Mailgun (Recommended)**
+
+**Why Mailgun?**
+- ✅ No personal passwords needed
+- ✅ 1,000 free emails per month  
+- ✅ Professional email delivery
+- ✅ Better security and reliability
+
+**Setup Steps:**
+1. **Sign up**: Go to [mailgun.com](https://www.mailgun.com/) and create free account
+2. **Add Domain**: Add your domain or use Mailgun's sandbox domain
+3. **Get API Key**: Copy your API key from Mailgun dashboard
+4. **Configure `.env`**:
+   ```bash
+   MAILGUN_API_KEY=key-1234567890abcdef1234567890abcdef
+   MAILGUN_DOMAIN=sandbox123.mailgun.org
+   MAILGUN_FROM_EMAIL=CFP Scout <noreply@sandbox123.mailgun.org>
+   TO_EMAIL=your-email@example.com
+   ```
+
+**Test Mailgun Setup:**
+```bash
+python3 src/email_sender.py
+```
+
+#### **📨 Method 2: Gmail/SMTP (Alternative)**
+
+**Setup Steps:**
 1. **Enable 2-Factor Authentication** on your Gmail account
 2. **Create App Password**: Go to Google Account Settings > Security > 2-Step Verification > App passwords
 3. **Configure `.env`**:
@@ -221,13 +256,7 @@ CFP Scout includes full email functionality! To enable email notifications:
    SMTP_PORT=587
    ```
 
-#### **Test Email Setup**
-```bash
-# Test email functionality
-python3 src/email_sender.py
-```
-
-#### **Other Email Providers**
+#### **Other SMTP Providers**
 ```bash
 # Outlook/Hotmail
 SMTP_SERVER=smtp-mail.outlook.com
@@ -240,6 +269,12 @@ SMTP_PORT=587
 # Custom SMTP
 SMTP_SERVER=your-smtp-server.com
 SMTP_PORT=587
+```
+
+#### **Test Email Setup**
+```bash
+# Test email functionality
+python3 src/email_sender.py
 ```
 
 ### **Command Line Overrides**
@@ -262,7 +297,7 @@ TIMEZONE=US/Pacific python3 src/main.py --schedule
 1. **🌐 Web Scraping**: Scrapes CFP events from confs.tech/cfp using Selenium
 2. **🔄 Data Processing**: Normalizes and deduplicates event data
 3. **🤖 AI Filtering**: Uses Ollama LLM to score events based on your interests
-4. **📧 Email Notification**: Sends beautiful HTML emails (if configured)
+4. **📧 Email Notification**: Sends beautiful HTML emails via Mailgun or SMTP
 5. **📝 Logging**: Saves detailed logs for monitoring
 
 ### **Expected Results**
@@ -271,6 +306,7 @@ TIMEZONE=US/Pacific python3 src/main.py --schedule
 📊 Mode: hybrid, Duration: 15.23s
 📈 Events processed: 27
 📋 Total executions: 1
+📧 Email sent successfully via Mailgun
 ```
 
 ### **Performance Metrics**
@@ -294,6 +330,9 @@ python3 test_cfp_scout.py
 # Check logs
 ls -la logs/
 tail -f logs/cfp_scout_main.log
+
+# Test email configuration
+python3 src/email_sender.py
 ```
 
 ### **Common Issues & Solutions**
@@ -321,19 +360,23 @@ sudo chown -R $USER:$USER .
 chmod +x src/main.py
 ```
 
-#### **4. Email Configuration**
+#### **4. Mailgun Configuration Issues**
 ```bash
-# Error: Username and Password not accepted
-# This means email is working but credentials need setup
+# Error: Mailgun API error: 401
+# Solution: Check your API key and domain in .env
 
-# ✅ For testing: Skip email configuration - CFP Scout works without it
-# ✅ For production: Set up Gmail App Password (see Configuration section above)
+# Error: Mailgun connection failed
+# Solutions:
+# 1. Verify MAILGUN_API_KEY is correct
+# 2. Check MAILGUN_DOMAIN matches your Mailgun account
+# 3. Ensure MAILGUN_FROM_EMAIL uses your domain
+# 4. Add authorized recipients for sandbox domains
 
-# Test email configuration:
+# Test Mailgun setup:
 python3 src/email_sender.py
 ```
 
-#### **5. Email Authentication Errors**
+#### **5. SMTP/Gmail Issues**
 ```bash
 # Error: (535, b'5.7.8 Username and Password not accepted')
 # Solution:
@@ -370,6 +413,9 @@ python3 src/main.py --status
 
 # Comprehensive testing
 python3 test_cfp_scout.py
+
+# Test email setup
+python3 src/email_sender.py
 ```
 
 ### **For Production Deployment**
@@ -441,7 +487,7 @@ CFP Scout is running successfully when you see:
 ✅ **Events processed: 25-30**  
 ✅ **No error messages**  
 ✅ **Logs created in `logs/` directory**  
-✅ **Email notifications sent** (if configured)
+✅ **"Email sent successfully via Mailgun"** (if configured)
 
 ---
 
@@ -457,4 +503,4 @@ CFP Scout is running successfully when you see:
 | View logs | `tail -f logs/cfp_scout_main.log` |
 | Test email setup | `python3 src/email_sender.py` |
 
-**CFP Scout is production-ready and fully functional!** 🎉 
+**CFP Scout is production-ready with Mailgun integration!** 🎉 
