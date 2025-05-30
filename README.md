@@ -1,8 +1,18 @@
 # CFP Scout
 
-AI-powered agent system for discovering relevant tech conference CFPs using **Anthropic's Model Context Protocol (MCP)**
+**CFP Scout** is an AI-powered agent system that scrapes tech events with open CFPs, filters them using a local language model via Ollama based on user-defined interests, and sends daily email notifications with beautiful formatting. Built with Anthropic's Model Context Protocol (MCP) for modular agent architecture.
 
-**CFP Scout** is a fully Dockerized AI-powered agent system that scrapes tech events with open CFPs, filters them using a local language model via Ollama based on user-defined interests, and sends daily email notifications at 8am UK time with the most relevant results. **Now with complete MCP integration and production-ready scheduling.**
+🎯 **Perfect for**: Developers, conference speakers, and tech professionals who want automated CFP discovery without manual searching.
+
+## ✨ Key Features
+
+- **🤖 AI-Powered Filtering** – Ollama local LLM analyzes CFP relevance to your interests
+- **📧 Beautiful Email Reports** – HTML-formatted emails with relevance scores and CFP details
+- **🖥️ External Terminal Display** – Launches separate terminal windows for email previews
+- **⚙️ Multi-Mode Execution** – Traditional, Hybrid, and full MCP agent modes
+- **⏰ Production Scheduling** – Automated daily execution with systemd and cron support
+- **🔗 MCP Integration** – Full Anthropic Model Context Protocol implementation
+- **📮 Mailgun Support** – Professional email delivery without personal passwords
 
 ---
 
@@ -25,9 +35,8 @@ AI-powered agent system for discovering relevant tech conference CFPs using **An
 - **Web Scraping**: Selenium with Chrome WebDriver
 - **Local LLM**: Ollama (llama3:latest)
 - **Agent Protocol**: Anthropic's Model Context Protocol (MCP)
-- **Email**: SMTP with Gmail integration and HTML formatting
-- **Scheduling**: Python schedule, systemd, Docker cron
-- **Containerization**: Docker with health checks and orchestration
+- **Email**: Mailgun API and SMTP with HTML formatting
+- **Scheduling**: Python schedule, systemd, cron
 - **Data Storage**: JSON files for event pipeline stages
 
 ---
@@ -134,21 +143,12 @@ python src/main.py --run-once
 
 # Check status
 python src/main.py --status
+
+# Run in background (survives terminal closing)
+nohup python src/main.py --schedule > logs/cfp_scout.log 2>&1 &
 ```
 
-**Option B: Docker Deployment**
-```bash
-# Complete setup with Ollama
-docker-compose up -d
-
-# Check status
-docker-compose exec cfp-scout python3 src/main.py --status
-
-# View logs
-docker-compose logs -f cfp-scout
-```
-
-**Option C: Manual Agent Execution**
+**Option B: Manual Agent Execution**
 ```bash
 # Run complete MCP agent ecosystem
 python src/mcp_host.py
@@ -170,25 +170,24 @@ python src/event_orchestrator.py
 
 ## Production Deployment
 
-### **Docker Compose (Recommended)**
+### **Native Python Scheduling (Recommended)**
 
 ```bash
 # 1. Configure environment
 cp env.example .env
 # Edit .env with your settings
 
-# 2. Start services
-docker-compose up -d
+# 2. Test the system
+python src/main.py --run-once
 
-# 3. Verify deployment
-docker-compose ps
-docker-compose logs cfp-scout
+# 3. Start scheduled execution
+python src/main.py --schedule
 
-# 4. Test execution
-docker-compose exec cfp-scout python3 src/main.py --run-once
+# 4. Run in background (survives terminal closing)
+nohup python src/main.py --schedule > logs/cfp_scout.log 2>&1 &
 ```
 
-### **Systemd Service (Linux)**
+### **Systemd Service (Linux Servers)**
 
 ```bash
 # 1. Install to /opt/cfp-scout
@@ -212,7 +211,7 @@ sudo journalctl -u cfp-scout -f
 ### **Manual Cron (Alternative)**
 
 ```bash
-# Add to crontab
+# Add to crontab for daily execution
 0 8 * * * cd /path/to/cfp-scout && python3 src/main.py --run-once >> logs/cron.log 2>&1
 ```
 
@@ -223,7 +222,7 @@ sudo journalctl -u cfp-scout -f
 ```
 cfp-scout/
 ├── 📁 src/
-│   ├── 📄 main.py                      # 🆕 Main orchestration script
+│   ├── 📄 main.py                      # Main orchestration script
 │   ├── 📄 event_orchestrator.py        # Central pipeline coordinator
 │   ├── 📄 cfp_filter_agent.py          # LLM-based event filtering
 │   ├── 📄 scraper.py                   # Web scraping engine
@@ -234,9 +233,8 @@ cfp-scout/
 │       ├── 📄 cfp_filter_mcp_server.py
 │       ├── 📄 email_sender_mcp_server.py
 │       └── 📄 event_orchestrator_mcp_server.py
-├── 📄 Dockerfile                       # 🆕 Production container
-├── 📄 docker-compose.yml               # 🆕 Complete deployment
-├── 📄 cfp-scout.service                # 🆕 Systemd service
+├── 📁 logs/                            # Execution logs and data
+├── 📄 cfp-scout.service                # Systemd service configuration
 ├── 📄 requirements.txt                 # Python dependencies
 ├── 📄 env.example                      # Environment template
 └── 📄 README.md                        # This file
@@ -265,22 +263,9 @@ python src/main.py --status            # Show status
 # Examples
 python src/main.py --run-once --mode mcp
 python src/main.py --schedule --mode hybrid
-```
 
-### **Docker Commands**
-
-```bash
-# Start complete system
-docker-compose up -d
-
-# Execute different modes
-docker-compose exec cfp-scout python3 src/main.py --run-once --mode traditional
-docker-compose exec cfp-scout python3 src/main.py --run-once --mode mcp
-
-# Monitor and manage
-docker-compose logs -f cfp-scout
-docker-compose restart cfp-scout
-docker-compose down
+# Background execution
+nohup python src/main.py --schedule > logs/cfp_scout.log 2>&1 &
 ```
 
 ### **Status Monitoring**
@@ -289,7 +274,13 @@ docker-compose down
 # Check orchestrator status
 python src/main.py --status
 
-# Example output:
+# View logs
+tail -f logs/cfp_scout.log
+
+# Check background process
+ps aux | grep "python3 src/main.py"
+
+# Example status output:
 # execution_mode: hybrid
 # schedule_time: 08:00
 # timezone: Europe/London
@@ -310,7 +301,7 @@ CFP Scout implements **Anthropic's Model Context Protocol** across all agents:
 - **Multi-Mode Execution**: Traditional, Hybrid, Pure MCP
 - **Scheduling**: Daily execution with timezone support  
 - **Monitoring**: Health checks and performance tracking
-- **Deployment**: Docker, systemd, cron integration
+- **Deployment**: Native Python, systemd, cron integration
 
 **Scraper MCP Server** (`src/agents/scraper_mcp_server.py`)
 - **Tools**: `scrape_cfp_events`, `get_available_sources`, `test_scraper_connectivity`
@@ -343,12 +334,13 @@ CFP Scout implements **Anthropic's Model Context Protocol** across all agents:
 | `TIMEZONE` | Execution timezone | `Europe/London` |
 | `OLLAMA_HOST` | Ollama API endpoint | `http://localhost:11434` |
 | `OLLAMA_MODEL` | Local LLM model name | `llama3:latest` |
-| `USER_INTERESTS` | Comma-separated interests | `AI,machine learning,fintech` |
-| `EMAIL_ADDRESS` | Sender email address | `your_email@gmail.com` |
-| `EMAIL_PASSWORD` | Email app password | `your_app_password_here` |
+| `EVENT_THEMES` | Topics of interest | `AI,machine learning,fintech` |
+| `EVENT_LOCATIONS` | Preferred locations | `Europe,UK` |
+| `EVENT_TYPE` | Event format preferences | `Online,Physical` |
+| `MAILGUN_API_KEY` | Mailgun API key | `your-api-key` |
+| `MAILGUN_DOMAIN` | Mailgun domain | `your-domain.mailgun.org` |
 | `TO_EMAIL` | Recipient email address | `recipient@example.com` |
-| `SMTP_SERVER` | SMTP server hostname | `smtp.gmail.com` |
-| `SMTP_PORT` | SMTP server port | `587` |
+| `SHOW_EXTERNAL_TERMINAL` | Launch external terminal | `true` |
 
 ---
 
@@ -366,12 +358,53 @@ python src/main.py --run-once --mode hybrid
 # Test MCP mode
 python src/main.py --run-once --mode mcp
 
-# Test individual agents
-python src/agents/scraper_mcp_server.py
-python src/agents/cfp_filter_mcp_server.py
-python src/agents/email_sender_mcp_server.py
-python src/agents/event_orchestrator_mcp_server.py
+# Test individual components
+python src/cfp_filter_agent.py
+python src/email_sender.py
+python src/scraper.py
 
 # Test complete MCP ecosystem
 python src/mcp_host.py
 ```
+
+---
+
+## Contributing
+
+1. **Fork** the repository
+2. **Create** a feature branch: `git checkout -b feature/amazing-feature`
+3. **Make** your changes and add tests
+4. **Update** documentation (README, docstrings)
+5. **Commit** your changes: `git commit -m 'Add amazing feature'`
+6. **Push** to branch: `git push origin feature/amazing-feature`
+7. **Submit** a Pull Request
+
+### **Guidelines**
+- Follow modular architecture principles
+- Add tests for new functionality
+- Update documentation for any changes
+- Remove deprecated/unused code
+- Ensure MCP compatibility for new agents
+- Maintain backward compatibility when possible
+- Test all execution modes (traditional, hybrid, mcp)
+
+---
+
+## License
+
+This project is licensed under the MIT License. See LICENSE for details.
+
+---
+
+## Support
+
+- **Issues**: Report bugs via GitHub Issues
+- **Documentation**: Check README and code comments
+- **MCP Resources**: [Anthropic MCP Documentation](https://modelcontextprotocol.io)
+- **Ollama Setup**: [Ollama Installation Guide](https://ollama.ai)
+
+---
+
+*Built with ❤️ using Anthropic's Model Context Protocol and Ollama for local AI processing*
+
+**🎉 Phase 3 Complete: Production-Ready Native Python Deployment!**

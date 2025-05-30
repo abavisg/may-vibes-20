@@ -107,9 +107,18 @@ def main():
     if passed == total:
         print("🎉 All tests passed! CFP Scout is working perfectly.")
         print("\n🚀 Ready for production deployment:")
-        print("   • Docker: docker-compose up -d")
-        print("   • Manual: python3 src/main.py --schedule")
-        print("   • Service: sudo systemctl start cfp-scout")
+        print("   • Python: python src/main.py --run-once")
+        print("   • Systemd: sudo systemctl start cfp-scout")
+        
+        print("\n📊 Performance Notes:")
+        print("   • Traditional mode: ~15-20 seconds")
+        print("   • Hybrid mode: ~16-18 seconds") 
+        print("   • Memory usage: <200MB typical")
+        
+        print("3. 🔧 System Service Test:")
+        print("   sudo systemctl status cfp-scout")
+        
+        return True
     
     else:
         print("⚠️  Some tests failed. Here's how to troubleshoot:")

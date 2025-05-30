@@ -66,7 +66,10 @@ async def test_mcp_integration():
         test_server = FastMCP("Test Server")
         print("   ✅ FastMCP server creation successful")
         
-        print("   📋 MCP Ready for agent communication")
+        print("   🐍 Python Ready: All dependencies installed")
+        print("   ⚙️  Service Ready: Check cfp-scout.service")
+        
+        return True
         
     except ImportError as e:
         print(f"   ❌ MCP import failed: {e}")

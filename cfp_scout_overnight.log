@@ -1,0 +1,4 @@
+2025-05-30 19:29:11,672 - __main__ - INFO - CFP Scout Orchestrator initialized in hybrid mode
+2025-05-30 19:29:11,674 - __main__ - INFO - Scheduled for daily execution at 08:00 Europe/London
+2025-05-30 19:29:11,674 - __main__ - INFO - ⏰ Scheduling daily execution at 08:00
+2025-05-30 19:29:11,674 - __main__ - INFO - 📅 Scheduler started. Waiting for scheduled time...

@@ -1,293 +1,85 @@
-# CFP Scout - Complete Running Guide 🚀
+# CFP Scout Running Guide
 
-## **How to Run CFP Scout: Step-by-Step Instructions**
-
-CFP Scout can be run in multiple ways depending on your needs. Here's exactly how to run it:
+**CFP Scout** is a production-ready AI-powered system for discovering relevant tech conference CFPs using native Python deployment with Anthropic's Model Context Protocol (MCP).
 
 ---
 
-## 🎯 **Quick Start (2 minutes)**
+## 🚀 Quick Start (2 minutes)
 
-### **Step 1: Basic Test Run**
-```bash
-# Run CFP Scout once to test everything works
-python3 src/main.py --run-once --mode traditional
-```
+1. **Install dependencies**: `pip install -r requirements.txt`
+2. **Configure**: `cp env.example .env` (edit with your settings)
+3. **Install Ollama**: Download from [ollama.ai](https://ollama.ai) 
+4. **Pull model**: `ollama pull llama3:latest`
+5. **Run**: `python src/main.py --run-once`
 
-**What happens:**
-- ✅ Scrapes 27 CFP events from confs.tech
-- ✅ Filters events using AI (Ollama)
-- ✅ Attempts to send email (if configured)
-- ✅ Completes in ~16 seconds
-- ✅ Shows success message
-
-### **Step 2: Check Status**
-```bash
-# View system status and configuration
-python3 src/main.py --status
-```
-
-**What you'll see:**
-```
-📊 CFP Scout Orchestrator Status
-==================================================
-execution_mode: hybrid
-schedule_time: 08:00
-timezone: Europe/London
-```
+**Result**: 🎉 CFP email generated and terminal preview launched!
 
 ---
 
-## 🚀 **All Running Methods**
+## 📋 Running Methods
 
 ### **Method 1: Single Execution (Testing)**
 
-#### **A. Traditional Mode (Fastest)**
-```bash
-python3 src/main.py --run-once --mode traditional
-```
-- **Duration**: ~16-17 seconds
-- **Use case**: Quick testing, maximum speed
-- **What it does**: Direct pipeline execution
+**Purpose**: Test the system once to verify everything works.
 
-#### **B. Hybrid Mode (Recommended)**
 ```bash
-python3 src/main.py --run-once --mode hybrid
-```
-- **Duration**: ~15-16 seconds
-- **Use case**: Production testing
-- **What it does**: MCP coordination + traditional execution
+# Quick test
+python src/main.py --run-once
 
-#### **C. Pure MCP Mode (Experimental)**
-```bash
-python3 src/main.py --run-once --mode mcp
+# Test specific mode
+python src/main.py --run-once --mode traditional
+python src/main.py --run-once --mode hybrid
+python src/main.py --run-once --mode mcp
+
+# Test without sending email
+python src/main.py --run-once --no-email
 ```
-- **Duration**: ~20-25 seconds
-- **Use case**: Full agent mesh testing
-- **What it does**: Complete MCP agent-to-agent communication
+
+**Output**: Immediate execution, terminal preview, email sent (if configured).
+
+---
 
 ### **Method 2: Scheduled Execution (Production)**
 
-#### **A. Default Schedule (8AM UK Time)**
-```bash
-python3 src/main.py --schedule
-```
-- **Schedule**: Daily at 08:00 Europe/London
-- **How to stop**: Press Ctrl+C
-- **Logs**: Saves to `logs/cfp_scout_main.log`
+**Purpose**: Run automatically every day at a specified time.
 
-#### **B. Custom Schedule Time**
 ```bash
-# Set custom time in environment
-SCHEDULE_TIME=06:30 python3 src/main.py --schedule
+# Start scheduler (runs daily)
+python src/main.py --schedule
 
-# Or edit .env file:
-echo "SCHEDULE_TIME=06:30" >> .env
-python3 src/main.py --schedule
+# Background execution (survives terminal closing)
+nohup python src/main.py --schedule > logs/cfp_scout.log 2>&1 &
+
+# Check status
+python src/main.py --status
 ```
 
-#### **C. Custom Timezone**
+**Output**: 
+- Runs daily at configured time (default: 08:00)
+- Logs all activity to `logs/cfp_scout.log`
+- External terminal preview for each execution
+
+---
+
+### **Method 3: System Service (Linux)**
+
+**Purpose**: Production deployment with automatic startup and service management.
+
 ```bash
-# US Eastern Time
-TIMEZONE=US/Eastern python3 src/main.py --schedule
-
-# Tokyo Time
-TIMEZONE=Asia/Tokyo python3 src/main.py --schedule
-```
-
-### **Method 3: Docker Deployment**
-
-#### **A. Complete Stack (Recommended)**
-```bash
-# 1. Setup environment
-cp env.example .env
-# Edit .env with your email settings (optional)
-
-# 2. Start complete stack with Ollama
-docker-compose up -d
-
-# 3. Check status
-docker-compose exec cfp-scout python3 src/main.py --status
-
-# 4. Run manually in container
-docker-compose exec cfp-scout python3 src/main.py --run-once
-
-# 5. View logs
-docker-compose logs -f cfp-scout
-```
-
-#### **B. Build and Run Manually**
-```bash
-# Build image
-docker build -t cfp-scout .
-
-# Run once
-docker run --env-file .env cfp-scout python3 src/main.py --run-once
-
-# Run with schedule
-docker run -d --env-file .env cfp-scout
-
-# Interactive mode
-docker run -it --env-file .env cfp-scout bash
-```
-
-### **Method 4: System Service (Linux Production)**
-
-#### **A. Install as Systemd Service**
-```bash
-# 1. Install to system location
-sudo mkdir -p /opt/cfp-scout
-sudo cp -r . /opt/cfp-scout/
-sudo chown -R cfpscout:cfpscout /opt/cfp-scout
-
-# 2. Install service
+# Install service
 sudo cp cfp-scout.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable cfp-scout
 
-# 3. Start service
-sudo systemctl start cfp-scout
-
-# 4. Check status
-sudo systemctl status cfp-scout
-
-# 5. View logs
-sudo journalctl -u cfp-scout -f
-```
-
-#### **B. Service Management**
-```bash
 # Start service
 sudo systemctl start cfp-scout
 
-# Stop service
-sudo systemctl stop cfp-scout
-
-# Restart service
-sudo systemctl restart cfp-scout
-
-# Enable auto-start
-sudo systemctl enable cfp-scout
-
-# Disable auto-start
-sudo systemctl disable cfp-scout
-
-# View logs
+# Monitor
+sudo systemctl status cfp-scout
 sudo journalctl -u cfp-scout -f
-sudo journalctl -u cfp-scout --since today
 ```
 
----
-
-## ⚙️ **Configuration Options**
-
-### **Environment Variables**
-
-Create or edit `.env` file:
-```bash
-# Execution settings
-EXECUTION_MODE=hybrid              # traditional, hybrid, mcp
-SCHEDULE_TIME=08:00               # Daily execution time
-TIMEZONE=Europe/London            # Timezone for scheduling
-
-# Ollama settings
-OLLAMA_HOST=http://localhost:11434
-OLLAMA_MODEL=qwen2.5-coder:1.5b
-
-# User interests for filtering
-USER_INTERESTS=AI,machine learning,engineering leadership,fintech,developer experience
-
-# Choose ONE email method below:
-
-# Method 1: Mailgun (recommended for production)
-MAILGUN_API_KEY=your-mailgun-api-key
-MAILGUN_DOMAIN=your-domain.mailgun.org
-MAILGUN_FROM_EMAIL=CFP Scout <noreply@your-domain.mailgun.org>
-TO_EMAIL=recipient@example.com
-
-# Method 2: SMTP (Gmail, etc.)
-# EMAIL_ADDRESS=your_email@gmail.com
-# EMAIL_PASSWORD=your_app_password
-# SMTP_SERVER=smtp.gmail.com
-# SMTP_PORT=587
-# TO_EMAIL=recipient@example.com
-```
-
-### **📧 Email Setup**
-
-CFP Scout supports two email methods. **Mailgun is recommended** for production as it doesn't require personal passwords.
-
-#### **🚀 Method 1: Mailgun (Recommended)**
-
-**Why Mailgun?**
-- ✅ No personal passwords needed
-- ✅ 1,000 free emails per month  
-- ✅ Professional email delivery
-- ✅ Better security and reliability
-
-**Setup Steps:**
-1. **Sign up**: Go to [mailgun.com](https://www.mailgun.com/) and create free account
-2. **Add Domain**: Add your domain or use Mailgun's sandbox domain
-3. **Get API Key**: Copy your API key from Mailgun dashboard
-4. **Configure `.env`**:
-   ```bash
-   MAILGUN_API_KEY=key-1234567890abcdef1234567890abcdef
-   MAILGUN_DOMAIN=sandbox123.mailgun.org
-   MAILGUN_FROM_EMAIL=CFP Scout <noreply@sandbox123.mailgun.org>
-   TO_EMAIL=your-email@example.com
-   ```
-
-**Test Mailgun Setup:**
-```bash
-python3 src/email_sender.py
-```
-
-#### **📨 Method 2: Gmail/SMTP (Alternative)**
-
-**Setup Steps:**
-1. **Enable 2-Factor Authentication** on your Gmail account
-2. **Create App Password**: Go to Google Account Settings > Security > 2-Step Verification > App passwords
-3. **Configure `.env`**:
-   ```bash
-   EMAIL_ADDRESS=your-email@gmail.com
-   EMAIL_PASSWORD=your-16-character-app-password
-   TO_EMAIL=recipient@example.com
-   SMTP_SERVER=smtp.gmail.com
-   SMTP_PORT=587
-   ```
-
-#### **Other SMTP Providers**
-```bash
-# Outlook/Hotmail
-SMTP_SERVER=smtp-mail.outlook.com
-SMTP_PORT=587
-
-# Yahoo
-SMTP_SERVER=smtp.mail.yahoo.com
-SMTP_PORT=587
-
-# Custom SMTP
-SMTP_SERVER=your-smtp-server.com
-SMTP_PORT=587
-```
-
-#### **Test Email Setup**
-```bash
-# Test email functionality
-python3 src/email_sender.py
-```
-
-### **Command Line Overrides**
-```bash
-# Override execution mode
-python3 src/main.py --run-once --mode traditional
-
-# Override schedule time (environment variable)
-SCHEDULE_TIME=06:30 python3 src/main.py --schedule
-
-# Override timezone (environment variable)
-TIMEZONE=US/Pacific python3 src/main.py --schedule
-```
+**Output**: Runs as system service, automatic startup, systemd logging.
 
 ---
 
