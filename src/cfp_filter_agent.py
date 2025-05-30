@@ -26,7 +26,7 @@ class CFPFilterAgent:
     
     def __init__(self):
         self.ollama_host = os.getenv('OLLAMA_HOST', 'http://localhost:11434')
-        self.ollama_model = os.getenv('OLLAMA_MODEL', 'llama3.2:3b')
+        self.ollama_model = os.getenv('OLLAMA_MODEL', 'llama3:latest')
         self.user_interests = self._parse_user_interests()
         
         logger.info(f"CFP Filter Agent initialized with Ollama at {self.ollama_host}")
@@ -34,15 +34,32 @@ class CFPFilterAgent:
         logger.info(f"User interests: {', '.join(self.user_interests)}")
     
     def _parse_user_interests(self) -> List[str]:
-        """Parse user interests from environment variable"""
-        interests_str = os.getenv('USER_INTERESTS', '')
-        if not interests_str:
-            logger.warning("No USER_INTERESTS found in environment, using defaults")
+        """Parse user interests and preferences from environment variables"""
+        # Get event themes (main interests)
+        themes_str = os.getenv('EVENT_THEMES', os.getenv('USER_INTERESTS', ''))
+        if not themes_str:
+            logger.warning("No EVENT_THEMES or USER_INTERESTS found in environment, using defaults")
             return ['AI', 'machine learning', 'software engineering']
         
-        # Split by comma and clean up
-        interests = [interest.strip() for interest in interests_str.split(',')]
-        return [interest for interest in interests if interest]
+        # Parse themes
+        themes = [theme.strip() for theme in themes_str.split(',')]
+        themes = [theme for theme in themes if theme]
+        
+        # Get location preferences
+        locations_str = os.getenv('EVENT_LOCATIONS', '')
+        if locations_str:
+            locations = [loc.strip() for loc in locations_str.split(',')]
+            locations = [loc for loc in locations if loc]
+            themes.extend([f"events in {loc}" for loc in locations])
+        
+        # Get event type preferences
+        event_types_str = os.getenv('EVENT_TYPE', '')
+        if event_types_str:
+            event_types = [etype.strip() for etype in event_types_str.split(',')]
+            event_types = [etype for etype in event_types if etype]
+            themes.extend([f"{etype.lower()} events" for etype in event_types])
+        
+        return themes
     
     def _test_ollama_connection(self) -> bool:
         """Test if Ollama is running and accessible"""
@@ -109,28 +126,46 @@ Description: {event.get('description', 'No description available')}
 CFP Deadline: {event.get('cfp_deadline', 'Unknown')}
 """
             
-            # Create prompt for relevance scoring
-            prompt = f"""You are a conference recommendation system. Rate how relevant this conference CFP is to someone interested in: {', '.join(self.user_interests)}.
+            # Create more specific prompt for relevance scoring with detailed criteria
+            user_interests_str = ', '.join(self.user_interests)
+            prompt = f"""Analyze this conference CFP for relevance to specific interests, locations, and event types.
 
+USER PREFERENCES: {user_interests_str}
+
+CONFERENCE DETAILS:
 {event_context}
 
-Rate the relevance on a scale of 0.0 to 1.0 where:
-- 0.0 = Not relevant at all
-- 0.3 = Somewhat relevant 
-- 0.6 = Moderately relevant
-- 0.8 = Highly relevant
-- 1.0 = Extremely relevant
+ANALYSIS TASK:
+Compare the conference against ALL user preferences including:
+1. Topic relevance (AI, machine learning, DevOps, etc.)
+2. Location preferences (Europe, UK, Online, etc.)
+3. Event format preferences (Online, Physical)
 
-Consider the conference title, topics, and description. Look for matches with the user's interests.
+ENHANCED SCORING CRITERIA:
+- Perfect match (topic + location + format) = 0.9-1.0
+- Topic + location match = 0.7-0.9
+- Topic + format match = 0.6-0.8
+- Topic match only = 0.5-0.7
+- Location/format only = 0.2-0.4
+- No clear relevance = 0.0-0.2
 
-Respond with ONLY a number between 0.0 and 1.0, nothing else."""
+EXAMPLES:
+- AI Conference in London (Online) for user wanting "AI, Europe, Online" → 0.95
+- DevOps event in Berlin for user wanting "DevOps, Europe" → 0.8
+- PHP Conference in Asia for user wanting "AI, Europe" → 0.1
+
+Output ONLY the numerical score (e.g., 0.8) with NO other text."""
 
             response = self._call_ollama(prompt)
+            
+            # Debug: Print what Ollama actually returned
+            logger.debug(f"Ollama response for '{event.get('title', 'Unknown')}': '{response}'")
             
             if response:
                 # Try to extract a number from the response
                 import re
-                number_match = re.search(r'([0-1]\.?\d*)', response)
+                # Look for decimal numbers between 0 and 1
+                number_match = re.search(r'([0-1]\.?\d*)', response.strip())
                 if number_match:
                     score = float(number_match.group(1))
                     # Ensure score is between 0.0 and 1.0
@@ -138,7 +173,7 @@ Respond with ONLY a number between 0.0 and 1.0, nothing else."""
                     logger.debug(f"Event '{event.get('title', 'Unknown')}' scored {score}")
                     return score
                 else:
-                    logger.warning(f"Could not parse score from Ollama response: {response}")
+                    logger.warning(f"Could not parse score from Ollama response: '{response}' for event: {event.get('title', 'Unknown')}")
                     return 0.5  # Default to neutral score
             else:
                 logger.warning(f"No response from Ollama for event: {event.get('title', 'Unknown')}")

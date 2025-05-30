@@ -23,7 +23,7 @@ AI-powered agent system for discovering relevant tech conference CFPs using **An
 
 - **Language**: Python 3.12
 - **Web Scraping**: Selenium with Chrome WebDriver
-- **Local LLM**: Ollama (qwen2.5-coder:1.5b)
+- **Local LLM**: Ollama (llama3:latest)
 - **Agent Protocol**: Anthropic's Model Context Protocol (MCP)
 - **Email**: SMTP with Gmail integration and HTML formatting
 - **Scheduling**: Python schedule, systemd, Docker cron
@@ -88,7 +88,7 @@ Edit `.env` with your settings:
 ```bash
 # Ollama Configuration
 OLLAMA_HOST=http://localhost:11434
-OLLAMA_MODEL=qwen2.5-coder:1.5b
+OLLAMA_MODEL=llama3:latest
 
 # User Interests (comma-separated)
 USER_INTERESTS=AI,machine learning,engineering leadership,fintech,developer experience
@@ -119,7 +119,7 @@ pip install -r requirements.txt
 ollama serve
 
 # Pull the model
-ollama pull qwen2.5-coder:1.5b
+ollama pull llama3:latest
 ```
 
 ### **5. Run CFP Scout**
@@ -342,7 +342,7 @@ CFP Scout implements **Anthropic's Model Context Protocol** across all agents:
 | `SCHEDULE_TIME` | Daily execution time | `08:00` |
 | `TIMEZONE` | Execution timezone | `Europe/London` |
 | `OLLAMA_HOST` | Ollama API endpoint | `http://localhost:11434` |
-| `OLLAMA_MODEL` | Local LLM model name | `qwen2.5-coder:1.5b` |
+| `OLLAMA_MODEL` | Local LLM model name | `llama3:latest` |
 | `USER_INTERESTS` | Comma-separated interests | `AI,machine learning,fintech` |
 | `EMAIL_ADDRESS` | Sender email address | `your_email@gmail.com` |
 | `EMAIL_PASSWORD` | Email app password | `your_app_password_here` |
@@ -375,88 +375,3 @@ python src/agents/event_orchestrator_mcp_server.py
 # Test complete MCP ecosystem
 python src/mcp_host.py
 ```
-
-### **Add New Execution Mode**
-
-1. Extend `CFPScoutOrchestrator` class in `src/main.py`
-2. Add new execution method: `execute_new_mode_pipeline()`
-3. Update mode selection in `execute_pipeline()`
-4. Add command line argument to `--mode` choices
-5. Update documentation and tests
-
----
-
-## Progress
-
-### **✅ Phase 1: Core MCP Integration (COMPLETED)**
-- [x] **Event Orchestrator MCP Server** - Pipeline coordination via MCP
-- [x] **CFP Filter MCP Server** - LLM-based filtering via MCP
-- [x] **MCP Host** - Agent coordination and discovery
-- [x] **Testing & Validation** - Comprehensive test suite
-
-### **✅ Phase 2: Complete Agent Ecosystem (COMPLETED)**
-- [x] **Email Sender MCP Server** - HTML email notifications via MCP
-- [x] **Scraper MCP Server** - Web scraping via MCP
-- [x] **Full MCP Pipeline** - End-to-end MCP execution
-- [x] **Four-Agent System** - Complete agent ecosystem operational
-
-### **✅ Phase 3: Production Orchestration (COMPLETED)**
-- [x] **Main Orchestration Script** - Multi-mode execution with scheduling
-- [x] **Docker Integration** - Complete containerization with Ollama
-- [x] **Production Deployment** - Systemd service and Docker Compose
-- [x] **Monitoring & Health Checks** - Status tracking and error handling
-
-### **🚧 Phase 4: Advanced Features (IN PROGRESS)**  
-- [ ] **Claude Desktop Integration** - MCP ecosystem connection
-- [ ] **Web Dashboard** - Visual monitoring and management
-- [ ] **Analytics & Insights** - Success metrics and reporting
-
-### **🔮 Phase 5: Future Enhancements**
-- [ ] **Additional Scrapers** - More CFP sources beyond confs.tech
-- [ ] **Advanced AI Filtering** - Context-aware relevance scoring
-- [ ] **Multi-User Support** - User management and personalization
-- [ ] **API Endpoints** - REST API for external integrations
-- [ ] **MCP Registry** - Public agent discovery and sharing
-
----
-
-## Contributing
-
-1. **Fork** the repository
-2. **Create** a feature branch: `git checkout -b feature/amazing-feature`
-3. **Make** your changes and add tests
-4. **Update** documentation (README, docstrings)
-5. **Commit** your changes: `git commit -m 'Add amazing feature'`
-6. **Push** to branch: `git push origin feature/amazing-feature`
-7. **Submit** a Pull Request
-
-### **Guidelines**
-- Follow modular architecture principles
-- Add tests for new functionality
-- Update documentation for any changes
-- Remove deprecated/unused code
-- Ensure MCP compatibility for new agents
-- Maintain backward compatibility when possible
-- Test all execution modes (traditional, hybrid, mcp)
-
----
-
-## License
-
-This project is licensed under the MIT License. See LICENSE for details.
-
----
-
-## Support
-
-- **Issues**: Report bugs via GitHub Issues
-- **Documentation**: Check README and code comments
-- **MCP Resources**: [Anthropic MCP Documentation](https://modelcontextprotocol.io)
-- **Ollama Setup**: [Ollama Installation Guide](https://ollama.ai)
-
----
-
-*Built with ❤️ using Anthropic's Model Context Protocol and Ollama for local AI processing*
-
-**🎉 Phase 3 Complete: Production-Ready Orchestration with Scheduling!**
-
