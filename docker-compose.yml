@@ -1,32 +1,87 @@
 version: '3.8'
 
 services:
+  # Main CFP Scout application
   cfp-scout:
     build: .
-    container_name: cfp-scout
-    env_file: .env
-    volumes:
-      - ./logs:/app/logs
+    container_name: cfp-scout-main
     restart: unless-stopped
-    # Optional: Run once and exit (for manual testing)
-    # command: python src/main.py
-    
-    # Optional: For scheduled runs with cron inside container
-    command: >
-      sh -c "
-        apt-get update &&
-        apt-get install -y cron &&
-        echo '0 8 * * * cd /app && python src/main.py >> /app/logs/cfp-scout.log 2>&1' | crontab - &&
-        cron -f
-      "
-
-# Optional: For one-time runs
-  cfp-scout-oneshot:
-    build: .
-    container_name: cfp-scout-oneshot
-    env_file: .env
+    environment:
+      - EXECUTION_MODE=${EXECUTION_MODE:-hybrid}
+      - SCHEDULE_TIME=${SCHEDULE_TIME:-08:00}
+      - TIMEZONE=${TIMEZONE:-Europe/London}
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5-coder:1.5b}
+      - USER_INTERESTS=${USER_INTERESTS:-AI,machine learning,engineering leadership}
+      - EMAIL_ADDRESS=${EMAIL_ADDRESS}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - TO_EMAIL=${TO_EMAIL}
+      - SMTP_SERVER=${SMTP_SERVER:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
     volumes:
       - ./logs:/app/logs
-    command: python src/main.py
-    profiles:
-      - manual 
+      - ./data:/app/data
+      - cfp-scout-data:/app/storage
+    depends_on:
+      - ollama
+    networks:
+      - cfp-scout-network
+    healthcheck:
+      test: ["CMD", "python3", "src/main.py", "--status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Ollama service for local LLM
+  ollama:
+    image: ollama/ollama:latest
+    container_name: cfp-scout-ollama
+    restart: unless-stopped
+    volumes:
+      - ollama-data:/root/.ollama
+    ports:
+      - "11434:11434"
+    networks:
+      - cfp-scout-network
+    environment:
+      - OLLAMA_MODELS=${OLLAMA_MODEL:-qwen2.5-coder:1.5b}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Optional: Web dashboard (future enhancement)
+  # dashboard:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.dashboard
+  #   container_name: cfp-scout-dashboard
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     - CFP_SCOUT_API_URL=http://cfp-scout:8080
+  #   depends_on:
+  #     - cfp-scout
+  #   networks:
+  #     - cfp-scout-network
+
+volumes:
+  ollama-data:
+    driver: local
+  cfp-scout-data:
+    driver: local
+
+networks:
+  cfp-scout-network:
+    driver: bridge
+
+# Usage:
+# 1. Copy env.example to .env and configure
+# 2. Run: docker-compose up -d
+# 3. Check status: docker-compose exec cfp-scout python3 src/main.py --status
+# 4. Run once: docker-compose exec cfp-scout python3 src/main.py --run-once
+# 5. View logs: docker-compose logs -f cfp-scout 

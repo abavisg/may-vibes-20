@@ -1,0 +1,53 @@
+[Unit]
+Description=CFP Scout - AI-powered Conference CFP Discovery Service
+Documentation=https://github.com/cfpscout/cfp-scout
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cfpscout
+Group=cfpscout
+WorkingDirectory=/opt/cfp-scout
+Environment=PYTHONPATH=/opt/cfp-scout/src
+Environment=PYTHONUNBUFFERED=1
+Environment=EXECUTION_MODE=hybrid
+Environment=SCHEDULE_TIME=08:00
+Environment=TIMEZONE=Europe/London
+EnvironmentFile=-/opt/cfp-scout/.env
+ExecStart=/usr/bin/python3 /opt/cfp-scout/src/main.py --schedule
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cfp-scout
+
+# Security settings
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/opt/cfp-scout/logs /opt/cfp-scout/data
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+
+# Resource limits
+LimitNOFILE=65536
+MemoryHigh=512M
+MemoryMax=1G
+
+[Install]
+WantedBy=multi-user.target
+
+# Installation instructions:
+# 1. sudo cp cfp-scout.service /etc/systemd/system/
+# 2. sudo systemctl daemon-reload
+# 3. sudo systemctl enable cfp-scout
+# 4. sudo systemctl start cfp-scout
+# 5. sudo systemctl status cfp-scout
+#
+# Logs: sudo journalctl -u cfp-scout -f
+# Stop: sudo systemctl stop cfp-scout
+# Restart: sudo systemctl restart cfp-scout 
