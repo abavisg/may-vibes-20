@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Event MCP (Message Control Protocol) Agent for CFP Scout
-Central orchestrator that coordinates data flow between scrapers, filters, and email sender
+Event Orchestrator Agent for CFP Scout
+Central coordinator that manages data flow between scrapers, filters, and email sender
 """
 
 import json
@@ -33,10 +33,10 @@ class NormalizedEvent:
     relevance_score: Optional[float] = None
     is_filtered: bool = False
 
-class EventMCP:
+class EventOrchestrator:
     """
-    Event Message Control Protocol Agent
-    Central orchestrator for CFP Scout system
+    Event Orchestrator Agent
+    Central coordinator for CFP Scout pipeline that manages data flow between all agents
     """
     
     def __init__(self, storage_dir: str = "logs"):
@@ -48,7 +48,7 @@ class EventMCP:
         self.normalized_events_file = self.storage_dir / "normalized_events.json"
         self.filtered_events_file = self.storage_dir / "filtered_events.json"
         
-        logger.info(f"Event MCP initialized with storage dir: {self.storage_dir}")
+        logger.info(f"Event Orchestrator initialized with storage dir: {self.storage_dir}")
     
     def process_pipeline(self, scraper_modules: List[str] = None) -> Dict:
         """
@@ -76,7 +76,7 @@ class EventMCP:
         }
         
         try:
-            logger.info("Starting Event MCP pipeline execution")
+            logger.info("Starting Event Orchestrator pipeline execution")
             
             # Step 1: Collect raw events from scrapers
             raw_events = self._collect_raw_events(scraper_modules)
@@ -402,15 +402,15 @@ def run_pipeline() -> Dict:
     Returns:
         Dict with pipeline execution results
     """
-    mcp = EventMCP()
-    return mcp.process_pipeline()
+    orchestrator = EventOrchestrator()
+    return orchestrator.process_pipeline()
 
 if __name__ == "__main__":
-    # Test the Event MCP agent
+    # Test the Event Orchestrator agent
     results = run_pipeline()
     
     print("\n" + "="*60)
-    print("CFP SCOUT EVENT MCP PIPELINE RESULTS")
+    print("CFP SCOUT EVENT ORCHESTRATOR PIPELINE RESULTS")
     print("="*60)
     print(f"Pipeline Start: {results['pipeline_start']}")
     print(f"Duration: {results['pipeline_duration']}")
@@ -426,8 +426,8 @@ if __name__ == "__main__":
             print(f"  - {error}")
     
     # Show statistics
-    mcp = EventMCP()
-    stats = mcp.get_statistics()
+    orchestrator = EventOrchestrator()
+    stats = orchestrator.get_statistics()
     print(f"\nCurrent Storage Statistics:")
     print(f"  Raw Events: {stats['raw_events']}")
     print(f"  Normalized Events: {stats['normalized_events']}")

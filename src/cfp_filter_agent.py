@@ -2,6 +2,7 @@
 """
 CFP Filter Agent for CFP Scout
 Uses Ollama locally to filter and score CFP events based on user interests
+Works with Event Orchestrator to process normalized events
 """
 
 import json
