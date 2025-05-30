@@ -1,7 +1,7 @@
 # CFP Scout
 AI-powered agent system for discovering relevant tech conference CFPs
 
-**CFP Scout** is a fully Dockerized AI-powered agent system that scrapes tech events with open CFPs, filters them using a language model based on user-defined interests, and sends daily email notifications at 8am UK time with the most relevant results.
+**CFP Scout** is a fully Dockerized AI-powered agent system that scrapes tech events with open CFPs, filters them using a local language model via Ollama based on user-defined interests, and sends daily email notifications at 8am UK time with the most relevant results.
 
 ---
 
@@ -9,11 +9,12 @@ AI-powered agent system for discovering relevant tech conference CFPs
 
 - **🔍 Smart Scraping** – Automatically scrapes CFP events from confs.tech/cfp using Selenium
 - **🎯 Event MCP Agent** – Central orchestrator that normalizes, deduplicates, and manages event data flow
-- **🤖 AI Filtering** – Uses OpenAI GPT-4 to filter events based on user interests (AI, engineering leadership, fintech, developer experience)
+- **🤖 AI Filtering** – Uses Ollama locally with Llama 3.2 to filter events based on user interests (AI, engineering leadership, fintech, developer experience)
 - **📧 Daily Notifications** – Sends formatted emails with relevant CFPs every day at 8am UK time
 - **🐳 Fully Dockerized** – Easy deployment with Docker container
 - **🛡️ Error Handling** – Robust error handling and logging throughout the pipeline
 - **🔄 Deduplication** – Automatic duplicate event detection and removal
+- **🏠 Local AI** – Uses Ollama for private, local LLM processing without API costs
 
 ---
 
@@ -21,7 +22,7 @@ AI-powered agent system for discovering relevant tech conference CFPs
 
 - **Python 3.11** – Core application language
 - **Selenium/Chrome** – Web scraping for JavaScript-rendered content
-- **OpenAI GPT-4** – Event filtering and relevance scoring
+- **Ollama + Llama 3.2** – Local LLM for event filtering and relevance scoring
 - **SMTP/Gmail** – Email delivery
 - **Docker** – Containerization
 - **JSON** – Data storage and interchange
@@ -37,7 +38,7 @@ AI-powered agent system for discovering relevant tech conference CFPs
 │                 │    │                 │    │(cfp_filter_agent│    │                 │
 └─────────────────┘    │  • Normalize    │    │     .py)        │    └─────────────────┘
                        │  • Deduplicate  │    │                 │             │
-                       │  • Store        │    │  • LLM Filter   │             ▼
+                       │  • Store        │    │  • Ollama LLM   │             ▼
                        │  • Orchestrate  │    │  • Relevance    │      📧 Daily Email
                        │                 │◀───│    Scoring      │         8am UK
                        └─────────────────┘    └─────────────────┘
@@ -66,7 +67,7 @@ cfp-scout/
 ├── src/
 │   ├── scraper.py              # Event scraper agent (Selenium-based)
 │   ├── event_mcp.py            # Event MCP agent (central orchestrator)
-│   ├── cfp_filter_agent.py     # AI filtering agent  
+│   ├── cfp_filter_agent.py     # AI filtering agent (Ollama-based)
 │   ├── email_sender.py         # Email notification agent
 │   ├── main.py                 # Main orchestrator
 │   └── test_event_mcp.py       # Event MCP tests
@@ -88,8 +89,9 @@ cfp-scout/
 Create a `.env` file with the following variables:
 
 ```env
-# OpenAI Configuration
-OPENAI_API_KEY=your_openai_api_key_here
+# Ollama Configuration
+OLLAMA_HOST=http://localhost:11434
+OLLAMA_MODEL=llama3.2:3b
 
 # Email Configuration  
 SMTP_SERVER=smtp.gmail.com
@@ -115,8 +117,35 @@ LOG_LEVEL=INFO
 
 ### Prerequisites
 - Docker and Docker Compose
-- OpenAI API key
+- **Ollama** installed and running locally
+- **Llama 3.2:3b model** downloaded via Ollama
 - Gmail account with App Password enabled
+
+### Ollama Setup
+
+1. **Install Ollama**
+   ```bash
+   # macOS
+   brew install ollama
+   
+   # Or download from https://ollama.ai
+   ```
+
+2. **Start Ollama service**
+   ```bash
+   ollama serve
+   ```
+
+3. **Download the Llama 3.2 model**
+   ```bash
+   ollama pull llama3.2:3b
+   ```
+
+4. **Verify setup**
+   ```bash
+   ollama list
+   # Should show llama3.2:3b in the list
+   ```
 
 ### Local Development Setup
 
@@ -155,6 +184,9 @@ LOG_LEVEL=INFO
 
 ### Manual Run
 ```bash
+# Test Ollama connection and CFP Filter
+python src/cfp_filter_agent.py
+
 # Run the complete pipeline
 python src/event_mcp.py
 
@@ -165,8 +197,9 @@ python src/test_event_mcp.py    # Run MCP tests
 
 ### Docker Run
 ```bash
-docker run --env-file .env cfp-scout
+docker run --env-file .env --network host cfp-scout
 ```
+*Note: `--network host` is needed for Docker to access local Ollama*
 
 ### Scheduled Daily Execution
 The application is designed to run daily at 8am UK time. Use your preferred scheduling method:
@@ -183,12 +216,12 @@ The application is designed to run daily at 8am UK time. Use your preferred sche
 - [x] Project structure and README setup
 - [x] Event Scraper Agent (scraper.py) - Selenium-based scraping from confs.tech/cfp
 - [x] Event MCP Agent (event_mcp.py) - Central orchestrator with normalization and deduplication
+- [x] CFP Filter Agent (cfp_filter_agent.py) - Ollama-based LLM filtering
 
 ### 🚧 In Progress  
-- [ ] CFP Filter Agent (cfp_filter_agent.py) - OpenAI GPT-4 filtering
+- [ ] Email Sender Agent (email_sender.py)
 
 ### 📋 Upcoming
-- [ ] Email Sender Agent (email_sender.py)  
 - [ ] Main Scheduler (main.py)
 - [ ] Final Docker integration and testing
 
@@ -198,10 +231,23 @@ The application is designed to run daily at 8am UK time. Use your preferred sche
 
 1. **Scraping Phase**: Scraper agents collect raw CFP events
 2. **MCP Phase**: Event MCP normalizes, deduplicates, and stores events
-3. **Filtering Phase**: LLM filters events based on user interests  
+3. **Filtering Phase**: Ollama LLM filters events based on user interests  
 4. **Notification Phase**: Email sender delivers relevant events
 
-**Current Status**: Successfully scraping and processing **27 CFP events** with full deduplication and normalization.
+**Current Status**: Successfully scraping and processing **27 CFP events** with full deduplication, normalization, and **local AI filtering via Ollama**.
+
+---
+
+## Troubleshooting
+
+### Ollama Issues
+- **Connection Error**: Make sure Ollama is running (`ollama serve`)
+- **Model Not Found**: Download the model (`ollama pull llama3.2:3b`)
+- **Port Issues**: Check if port 11434 is available or change `OLLAMA_HOST` in `.env`
+
+### Docker Network Issues
+- Use `--network host` flag when running Docker to access local Ollama
+- Or run Ollama in Docker and connect containers via Docker network
 
 ---
 
@@ -213,6 +259,7 @@ The application is designed to run daily at 8am UK time. Use your preferred sche
 - 🎨 **Web UI** – Dashboard with historical logs and preferences
 - 📊 **Analytics** – Track CFP success rates and preferences
 - 🔌 **Additional Scrapers** – Support for more conference listing sites
+- 🤖 **Model Options** – Support for different Ollama models (larger/smaller)
 
 ---
 
