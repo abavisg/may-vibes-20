@@ -1,0 +1,367 @@
+#!/usr/bin/env python3
+"""
+Email Sender MCP Server
+Exposes email notification capabilities via Anthropic's Model Context Protocol
+"""
+
+import asyncio
+import json
+import os
+import sys
+import smtplib
+from typing import List, Dict, Optional
+from mcp.server.fastmcp import FastMCP
+from pathlib import Path
+from datetime import datetime
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
+
+# Add src directory to path so we can import our existing modules
+sys.path.append(str(Path(__file__).parent.parent))
+
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Create the MCP server
+mcp_server = FastMCP("Email Sender Agent")
+
+class EmailSenderAgent:
+    """Email sender agent for CFP notifications"""
+    
+    def __init__(self):
+        self.smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
+        self.smtp_port = int(os.getenv('SMTP_PORT', '587'))
+        self.email_address = os.getenv('EMAIL_ADDRESS')
+        self.email_password = os.getenv('EMAIL_PASSWORD')
+        self.to_email = os.getenv('TO_EMAIL')
+        
+        if not all([self.email_address, self.email_password, self.to_email]):
+            print("⚠️ Warning: Email configuration incomplete")
+    
+    def _test_smtp_connection(self) -> bool:
+        """Test SMTP connection"""
+        try:
+            with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
+                server.starttls()
+                server.login(self.email_address, self.email_password)
+                return True
+        except Exception as e:
+            print(f"SMTP connection failed: {e}")
+            return False
+    
+    def _format_events_html(self, events: List[Dict]) -> str:
+        """Format events as HTML email content"""
+        if not events:
+            return "<p>No relevant CFP events found.</p>"
+        
+        html = """
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; }
+                .event { border: 1px solid #ddd; margin: 15px 0; padding: 15px; border-radius: 5px; }
+                .event-title { font-size: 18px; font-weight: bold; color: #2E7D32; margin-bottom: 10px; }
+                .event-meta { color: #666; font-size: 14px; margin: 5px 0; }
+                .event-tags { margin: 10px 0; }
+                .tag { background-color: #E8F5E8; color: #2E7D32; padding: 2px 8px; border-radius: 3px; margin-right: 5px; font-size: 12px; }
+                .deadline { color: #D32F2F; font-weight: bold; }
+                .relevance { background-color: #FFF3E0; padding: 5px; border-radius: 3px; margin: 5px 0; }
+                .footer { margin-top: 30px; padding: 20px; background-color: #f5f5f5; text-align: center; font-size: 12px; color: #666; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>📢 CFP Scout Daily Report</h1>
+                <p>Your personalized conference CFP recommendations</p>
+            </div>
+        """
+        
+        html += f"<p><strong>Found {len(events)} relevant CFP events for you:</strong></p>"
+        
+        for i, event in enumerate(events, 1):
+            relevance_score = event.get('relevance_score', 0)
+            relevance_color = "#4CAF50" if relevance_score >= 0.8 else "#FF9800" if relevance_score >= 0.6 else "#F44336"
+            
+            html += f"""
+            <div class="event">
+                <div class="event-title">{i}. {event.get('title', 'Unknown Event')}</div>
+                <div class="event-meta">📍 <strong>Location:</strong> {event.get('location', 'Unknown')}</div>
+                <div class="event-meta deadline">⏰ <strong>CFP Deadline:</strong> {event.get('cfp_deadline', 'Unknown')}</div>
+                <div class="event-meta">🔗 <strong>Link:</strong> <a href="{event.get('link', '#')}">{event.get('link', 'No link available')}</a></div>
+                <div class="relevance" style="border-left: 4px solid {relevance_color};">
+                    <strong>Relevance Score:</strong> {relevance_score:.2f}/1.0
+                </div>
+            """
+            
+            if event.get('tags'):
+                html += '<div class="event-tags"><strong>Topics:</strong> '
+                for tag in event.get('tags', []):
+                    html += f'<span class="tag">{tag}</span>'
+                html += '</div>'
+            
+            if event.get('description'):
+                description = event['description'][:200] + "..." if len(event['description']) > 200 else event['description']
+                html += f'<div class="event-meta"><strong>Description:</strong> {description}</div>'
+            
+            html += '</div>'
+        
+        html += f"""
+            <div class="footer">
+                <p>🤖 Generated by CFP Scout using Ollama AI • {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                <p>This email was automatically generated based on your interests in AI, machine learning, engineering leadership, and more.</p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return html
+    
+    def send_cfp_email(self, events: List[Dict]) -> Dict:
+        """Send CFP events via email"""
+        try:
+            if not all([self.email_address, self.email_password, self.to_email]):
+                return {
+                    "success": False,
+                    "error": "Email configuration incomplete (missing EMAIL_ADDRESS, EMAIL_PASSWORD, or TO_EMAIL)",
+                    "events_count": len(events)
+                }
+            
+            # Create message
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = f"📢 CFP Scout: {len(events)} Relevant Conference CFPs Found"
+            msg['From'] = self.email_address
+            msg['To'] = self.to_email
+            
+            # Create HTML content
+            html_content = self._format_events_html(events)
+            html_part = MIMEText(html_content, 'html')
+            
+            # Create plain text content
+            text_content = f"CFP Scout Daily Report\n{'='*50}\n\n"
+            text_content += f"Found {len(events)} relevant CFP events:\n\n"
+            
+            for i, event in enumerate(events, 1):
+                text_content += f"{i}. {event.get('title', 'Unknown Event')}\n"
+                text_content += f"   Location: {event.get('location', 'Unknown')}\n"
+                text_content += f"   Deadline: {event.get('cfp_deadline', 'Unknown')}\n"
+                text_content += f"   Link: {event.get('link', 'No link')}\n"
+                text_content += f"   Relevance: {event.get('relevance_score', 0):.2f}/1.0\n\n"
+            
+            text_content += f"\nGenerated by CFP Scout • {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            
+            text_part = MIMEText(text_content, 'plain')
+            
+            # Attach parts
+            msg.attach(text_part)
+            msg.attach(html_part)
+            
+            # Send email
+            with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
+                server.starttls()
+                server.login(self.email_address, self.email_password)
+                server.send_message(msg)
+            
+            return {
+                "success": True,
+                "message": f"Email sent successfully to {self.to_email}",
+                "events_count": len(events),
+                "timestamp": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "events_count": len(events)
+            }
+
+# Initialize the email sender agent
+email_agent = EmailSenderAgent()
+
+@mcp_server.tool()
+async def send_cfp_emails(filtered_events: list[dict]) -> dict:
+    """
+    Send CFP events via email notifications
+    
+    Args:
+        filtered_events: List of filtered event dictionaries with relevance scores
+    
+    Returns:
+        Email sending results with success status
+    """
+    try:
+        result = email_agent.send_cfp_email(filtered_events)
+        return result
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "events_count": len(filtered_events) if filtered_events else 0
+        }
+
+@mcp_server.tool()
+async def test_email_connection() -> dict:
+    """Test SMTP email connection"""
+    try:
+        is_connected = email_agent._test_smtp_connection()
+        return {
+            "success": True,
+            "email_connected": is_connected,
+            "smtp_server": email_agent.smtp_server,
+            "smtp_port": email_agent.smtp_port,
+            "from_email": email_agent.email_address,
+            "to_email": email_agent.to_email
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "email_connected": False
+        }
+
+@mcp_server.tool()
+async def send_test_email() -> dict:
+    """Send a test email to verify configuration"""
+    try:
+        test_events = [
+            {
+                "title": "Test CFP Event",
+                "location": "Virtual",
+                "cfp_deadline": "Test Deadline",
+                "link": "https://example.com/test",
+                "description": "This is a test event to verify email functionality.",
+                "relevance_score": 0.85,
+                "tags": ["test", "verification"]
+            }
+        ]
+        
+        result = email_agent.send_cfp_email(test_events)
+        return result
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "events_count": 1
+        }
+
+@mcp_server.resource("email://config")
+async def get_email_config() -> str:
+    """Get current email configuration (without sensitive data)"""
+    config = {
+        "smtp_server": email_agent.smtp_server,
+        "smtp_port": email_agent.smtp_port,
+        "from_email": email_agent.email_address,
+        "to_email": email_agent.to_email,
+        "configured": bool(email_agent.email_address and email_agent.email_password and email_agent.to_email)
+    }
+    return json.dumps(config, indent=2)
+
+@mcp_server.resource("email://status")
+async def get_email_status() -> str:
+    """Get email service status"""
+    try:
+        is_connected = email_agent._test_smtp_connection()
+        status = {
+            "service": "email_sender",
+            "status": "online" if is_connected else "offline",
+            "smtp_server": email_agent.smtp_server,
+            "configured": bool(email_agent.email_address and email_agent.email_password and email_agent.to_email),
+            "last_check": datetime.now().isoformat()
+        }
+        return json.dumps(status, indent=2)
+    except Exception as e:
+        return f"Error checking email status: {str(e)}"
+
+@mcp_server.prompt()
+async def create_email_template_prompt(event_count: int, user_interests: str) -> str:
+    """Generate a prompt for creating custom email templates"""
+    prompt = f"""You are designing an email template for CFP Scout notifications.
+
+Context:
+- Number of events to include: {event_count}
+- User interests: {user_interests}
+- Email format: HTML with fallback plain text
+- Target audience: Technical professionals seeking conference speaking opportunities
+
+Create an engaging email template that:
+1. Has an attention-grabbing subject line
+2. Clearly presents the most relevant CFP opportunities
+3. Includes all essential information (deadline, location, relevance score)
+4. Maintains professional yet friendly tone
+5. Encourages action (applying to CFPs)
+
+Include suggestions for:
+- Subject line variations
+- Header/intro text
+- Event presentation format
+- Call-to-action elements
+- Footer content
+
+Make it visually appealing and mobile-friendly."""
+
+    return prompt
+
+@mcp_server.prompt()
+async def create_email_summary_prompt(events_data: str) -> str:
+    """Generate a prompt for creating email content summaries"""
+    prompt = f"""You are creating a summary for CFP Scout email notifications.
+
+Events data to summarize:
+{events_data}
+
+Create a brief, engaging summary that:
+1. Highlights the most relevant/high-scoring events
+2. Identifies common themes or trending topics
+3. Notes any time-sensitive deadlines
+4. Suggests which events align best with typical tech interests
+5. Keeps the tone professional but enthusiastic
+
+The summary should be 2-3 sentences and serve as an intro paragraph for the email."""
+
+    return prompt
+
+# Main function to run the MCP server
+async def main():
+    """Run the Email Sender MCP Server"""
+    try:
+        print("📧 Starting Email Sender MCP Server...")
+        print(f"📮 SMTP Server: {email_agent.smtp_server}:{email_agent.smtp_port}")
+        print(f"📤 From: {email_agent.email_address}")
+        print(f"📥 To: {email_agent.to_email}")
+        
+        # Test email connection on startup
+        if email_agent._test_smtp_connection():
+            print("✅ Email connection successful!")
+        else:
+            print("⚠️ Warning: Could not connect to email server")
+        
+        # Run the MCP server
+        await mcp_server.run()
+        
+    except KeyboardInterrupt:
+        print("\n🛑 Server stopped by user")
+    except Exception as e:
+        print(f"❌ Server error: {e}")
+        raise
+
+if __name__ == "__main__":
+    import sys
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    
+    try:
+        # Try to get the existing event loop
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # If we're already in an async context, just run the server
+            asyncio.create_task(main())
+        else:
+            asyncio.run(main())
+    except RuntimeError:
+        # No event loop running, create a new one
+        asyncio.run(main()) 
