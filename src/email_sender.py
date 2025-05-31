@@ -101,6 +101,10 @@ class EmailSender:
     
     def _send_via_mailgun(self, subject: str, html_content: str, text_content: str) -> bool:
         """Send email via Mailgun API"""
+        print(f"To: {self.to_email}")
+        print(f"From: {self.mailgun_from_email}")
+        print(f"Domain: {self.mailgun_domain}")
+    
         try:
             response = requests.post(
                 f"https://api.mailgun.net/v3/{self.mailgun_domain}/messages",

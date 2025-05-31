@@ -208,7 +208,7 @@ python src/main.py --run-once --mode mcp
 
 # 3. Test individual components
 python src/cfp_filter_agent.py
-python src/email_sender.py
+
 python src/scraper.py
 
 # 4. Run comprehensive test suite

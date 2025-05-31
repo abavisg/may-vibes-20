@@ -2,3 +2,77 @@
 2025-05-30 19:29:11,674 - __main__ - INFO - Scheduled for daily execution at 08:00 Europe/London
 2025-05-30 19:29:11,674 - __main__ - INFO - ⏰ Scheduling daily execution at 08:00
 2025-05-30 19:29:11,674 - __main__ - INFO - 📅 Scheduler started. Waiting for scheduled time...
+2025-05-31 08:00:34,216 - __main__ - INFO - ⏰ Scheduled execution triggered
+2025-05-31 08:00:34,239 - __main__ - INFO - 🚀 Starting CFP Scout pipeline execution (mode: hybrid)
+2025-05-31 08:00:34,239 - __main__ - INFO - 🔀 Executing hybrid pipeline...
+2025-05-31 08:00:34,563 - mcp_host - INFO - CFP Scout MCP Host initialized
+2025-05-31 08:00:34,563 - mcp_host - INFO - Available agents: ['event_orchestrator', 'cfp_filter', 'email_sender', 'scraper']
+2025-05-31 08:00:34,563 - mcp_host - INFO - 🚀 Starting MCP agent servers...
+2025-05-31 08:00:34,563 - mcp_host - INFO -    Starting event_orchestrator server...
+2025-05-31 08:00:34,563 - mcp_host - INFO -    ✅ event_orchestrator server registered
+2025-05-31 08:00:34,563 - mcp_host - INFO -    Starting cfp_filter server...
+2025-05-31 08:00:34,563 - mcp_host - INFO -    ✅ cfp_filter server registered
+2025-05-31 08:00:34,563 - mcp_host - INFO -    Starting email_sender server...
+2025-05-31 08:00:34,563 - mcp_host - INFO -    ⏭️ Skipping email_sender server (not configured)
+2025-05-31 08:00:34,563 - mcp_host - INFO -    Starting scraper server...
+2025-05-31 08:00:34,563 - mcp_host - INFO -    ✅ scraper server registered
+2025-05-31 08:00:34,563 - mcp_host - INFO - ✅ Registered 3 agent servers
+2025-05-31 08:00:34,563 - mcp_host - INFO - 🎯 Executing CFP Scout pipeline via MCP...
+2025-05-31 08:00:34,563 - mcp_host - INFO -    Stage 1: Running traditional pipeline with MCP coordination...
+2025-05-31 08:00:34,564 - event_orchestrator - INFO - Event Orchestrator initialized with storage dir: logs
+2025-05-31 08:00:34,564 - event_orchestrator - INFO - Starting Event Orchestrator pipeline execution
+2025-05-31 08:00:34,564 - event_orchestrator - INFO - Running scraper: scraper
+2025-05-31 08:00:34,680 - WDM - INFO - ====== WebDriver manager ======
+2025-05-31 08:00:34,839 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-05-31 08:00:34,905 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-05-31 08:00:34,958 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-05-31 08:00:35,087 - WDM - INFO - WebDriver version 136.0.7103.113 selected
+2025-05-31 08:00:35,089 - WDM - INFO - Modern chrome version https://storage.googleapis.com/chrome-for-testing-public/136.0.7103.113/mac-arm64/chromedriver-mac-arm64.zip
+2025-05-31 08:00:35,089 - WDM - INFO - About to download new driver from https://storage.googleapis.com/chrome-for-testing-public/136.0.7103.113/mac-arm64/chromedriver-mac-arm64.zip
+2025-05-31 08:00:35,153 - WDM - INFO - Driver downloading response is 200
+2025-05-31 08:00:36,506 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-05-31 08:00:36,638 - WDM - INFO - Driver has been saved in cache [/Users/giorgos/.wdm/drivers/chromedriver/mac64/136.0.7103.113]
+2025-05-31 08:00:36,641 - scraper - WARNING - ChromeDriverManager failed: [Errno 8] Exec format error: '/Users/giorgos/.wdm/drivers/chromedriver/mac64/136.0.7103.113/chromedriver-mac-arm64/THIRD_PARTY_NOTICES.chromedriver', trying system Chrome
+2025-05-31 08:00:38,400 - scraper - INFO - Chrome WebDriver setup successful
+2025-05-31 08:00:38,400 - scraper - INFO - Starting CFP events scraping from confs.tech/cfp
+2025-05-31 08:00:41,897 - scraper - INFO - Waiting for page content to load...
+2025-05-31 08:00:42,425 - scraper - INFO - Conference items detected
+2025-05-31 08:00:45,446 - scraper - INFO - Rendered HTML saved for debugging
+2025-05-31 08:00:45,458 - scraper - INFO - Found 27 conference items
+2025-05-31 08:00:46,288 - scraper - INFO - Successfully scraped 27 CFP events
+2025-05-31 08:00:46,372 - scraper - INFO - WebDriver cleanup completed
+2025-05-31 08:00:46,372 - event_orchestrator - INFO - Scraper scraper collected 27 events
+2025-05-31 08:00:46,373 - event_orchestrator - INFO - Total raw events collected: 27
+2025-05-31 08:00:46,375 - event_orchestrator - INFO - Normalized 27 events (removed 0 duplicates/invalid)
+2025-05-31 08:00:46,375 - event_orchestrator - INFO - Starting LLM-based event filtering
+2025-05-31 08:00:46,376 - cfp_filter_agent - INFO - CFP Filter Agent initialized with Ollama at http://localhost:11434
+2025-05-31 08:00:46,376 - cfp_filter_agent - INFO - Using model: llama3:latest
+2025-05-31 08:00:46,376 - cfp_filter_agent - INFO - User interests: AI, machine learning, artificial intelligence, engineering leadership, fintech, developer experience, software architecture, cloud computing, DevOps, data science, events in Europe, events in UK, online events, physical events
+2025-05-31 08:00:46,411 - cfp_filter_agent - INFO - ✅ Ollama connection successful, model llama3:latest available
+2025-05-31 08:00:46,411 - cfp_filter_agent - INFO - Starting LLM filtering of 27 events with min_score=0.6
+2025-05-31 08:00:56,924 - cfp_filter_agent - INFO - ✅ Event 1/27: 'Software Architecture Conference' - Score: 0.60
+2025-05-31 08:01:06,557 - cfp_filter_agent - INFO - ✅ Event 5/27: 'meshcloud Con' - Score: 0.70
+2025-05-31 08:01:15,167 - cfp_filter_agent - INFO - ✅ Event 8/27: 'Global Software Architecture Summit' - Score: 0.60
+2025-05-31 08:01:17,348 - cfp_filter_agent - INFO - ✅ Event 9/27: 'The Future of Software - Copenhagen' - Score: 0.70
+2025-05-31 08:01:25,997 - cfp_filter_agent - INFO - ✅ Event 12/27: 'The Future of Software - Stockholm' - Score: 0.70
+2025-05-31 08:01:33,582 - cfp_filter_agent - INFO - ✅ Event 15/27: 'DevOps Barcelona' - Score: 0.70
+2025-05-31 08:01:53,143 - cfp_filter_agent - INFO - ✅ Event 22/27: 'CTO Craft Con: The Finance Edition' - Score: 0.70
+2025-05-31 08:01:55,322 - cfp_filter_agent - INFO - ✅ Event 23/27: 'Software Architecture Gathering' - Score: 0.60
+2025-05-31 08:02:03,909 - cfp_filter_agent - INFO - ✅ Event 26/27: 'CTO Craft Con: London' - Score: 0.70
+2025-05-31 08:02:07,125 - cfp_filter_agent - INFO - LLM filtering completed: 9 relevant events selected from 27 total
+2025-05-31 08:02:07,127 - event_orchestrator - INFO - LLM filtering completed: 9 relevant events selected from 27
+2025-05-31 08:02:07,127 - event_orchestrator - INFO - Preparing to send email with 9 events
+2025-05-31 08:02:07,537 - event_orchestrator - ERROR - Email sending failed
+2025-05-31 08:02:07,537 - event_orchestrator - INFO - Pipeline completed successfully in 0:01:32.973340
+2025-05-31 08:02:07,537 - event_orchestrator - INFO - Summary: 27 raw → 27 normalized → 9 filtered
+2025-05-31 08:02:07,538 - mcp_host - INFO -    ✅ Pipeline execution completed successfully
+2025-05-31 08:02:07,538 - mcp_host - INFO - 🛑 Stopping MCP agent servers...
+2025-05-31 08:02:07,539 - mcp_host - INFO -    Stopped event_orchestrator server
+2025-05-31 08:02:07,539 - mcp_host - INFO -    Stopped cfp_filter server
+2025-05-31 08:02:07,540 - mcp_host - INFO -    Stopped scraper server
+2025-05-31 08:02:07,540 - mcp_host - INFO - ✅ All agent servers stopped
+2025-05-31 08:02:07,540 - __main__ - INFO - ✅ Pipeline execution completed successfully
+2025-05-31 08:02:07,540 - __main__ - INFO - 📊 Mode: hybrid, Duration: 93.30s
+2025-05-31 08:02:07,540 - __main__ - INFO - 📈 Events processed: 0
+2025-05-31 08:02:07,540 - __main__ - INFO - 📋 Total executions: 1
+2025-05-31 08:02:07,542 - __main__ - INFO - ✅ Scheduled execution completed successfully
